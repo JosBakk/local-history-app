@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f4f2eb" />
+    <meta name="description" content="Oppdag historien rundt deg, lest høyt på norsk." />
+    <title>Stedshistorie — historier rundt deg</title>
+    <script type="module" crossorigin src="/assets/index-CYYbylet.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DzIUDO8g.css">
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <a class="wordmark" href="#" aria-label="Stedshistorie, start">
+          <span class="wordmark-mark" aria-hidden="true">S</span>
+          <span>STEDSHISTORIE</span>
+        </a>
+        <span class="topbar-note"><span class="live-dot"></span> HISTORIEN ER NÆR</span>
+      </header>
+
+      <main class="layout">
+        <section class="story-panel" aria-labelledby="page-title">
+          <div class="eyebrow"><span class="eyebrow-line"></span> LYDGUIDE FOR OMRÅDET DITT</div>
+          <h1 id="page-title">Historien<br />er <em>rett her.</em></h1>
+          <p class="intro">Finn ut hva som har skjedd der du står. Vi leter i norsk Wikipedia og forteller deg historien.</p>
+
+          <div class="controls" aria-label="Lydkontroller">
+            <button class="action action-primary" id="tell-button" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5-11-6.5Z" /></svg>
+              <span>Fortell</span>
+            </button>
+            <button class="action action-stop" id="stop-button" type="button" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1" /></svg>
+              <span>Stopp</span>
+            </button>
+          </div>
+
+          <div class="status-row" aria-live="polite" aria-atomic="true">
+            <span class="status-indicator" id="status-indicator"></span>
+            <p id="status-text">Klar når du er. Trykk Fortell for å begynne.</p>
+          </div>
+
+          <div class="nearby-section">
+            <div class="section-heading">
+              <h2>Rundt deg</h2>
+              <span id="result-count">INGEN STED FUNNET</span>
+            </div>
+            <ol class="story-list" id="story-list">
+              <li class="empty-state">
+                <span class="empty-number">01</span>
+                <span>Historiene dukker opp her når du starter.</span>
+              </li>
+            </ol>
+          </div>
+
+          <footer class="panel-footer">
+            <span>POSISJONEN BRUKES BARE TIL Å FINNE LOKALE ARTIKLER</span>
+            <a href="https://no.wikipedia.org/" target="_blank" rel="noreferrer">KILDE: WIKIPEDIA ↗</a>
+          </footer>
+        </section>
+
+        <section class="map-panel" aria-label="Kart over området">
+          <div class="map-caption"><span class="map-caption-dot"></span><span id="map-caption-text">VENTER PÅ POSISJON</span></div>
+          <div id="map" role="img" aria-label="Kart som viser området rundt posisjonen din"></div>
+          <div class="map-credit">© OpenStreetMap-bidragsytere</div>
+          <div class="map-coordinates" id="map-coordinates">—</div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
