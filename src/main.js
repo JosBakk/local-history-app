@@ -4,6 +4,7 @@ import "./style.css";
 
 const tellButton = document.querySelector("#tell-button");
 const stopButton = document.querySelector("#stop-button");
+const nextButton = document.querySelector("#next-button");
 const statusText = document.querySelector("#status-text");
 const statusIndicator = document.querySelector("#status-indicator");
 const storyList = document.querySelector("#story-list");
@@ -24,6 +25,8 @@ let locationMarker;
 let activeRequest;
 let runId = 0;
 let articles = [];
+let currentStoryIndex = -1;
+let speechSequence = 0;
 
 function setStatus(message, state = "idle") {
   statusText.textContent = message;
@@ -32,6 +35,8 @@ function setStatus(message, state = "idle") {
 
 function renderArticles(items) {
   articles = items;
+  currentStoryIndex = -1;
+  nextButton.disabled = true;
   resultCount.textContent = items.length
     ? `${String(items.length).padStart(2, "0")} HISTORIER`
     : "INGEN TREFF";
@@ -145,60 +150,108 @@ async function fetchNearbyArticles(latitude, longitude, signal) {
     .slice(0, 5);
 }
 
+function speakStoryAt(items, currentRun, index) {
+  if (currentRun !== runId) return;
+  if (index >= items.length) {
+    currentStoryIndex = -1;
+    nextButton.disabled = true;
+    stopButton.disabled = true;
+    setStatus("Ferdig. Trykk Fortell for å høre historiene igjen.", "done");
+    return;
+  }
+
+  currentStoryIndex = index;
+  nextButton.disabled = index >= items.length - 1;
+  const sequence = ++speechSequence;
+  const article = items[index];
+  const voices = window.speechSynthesis.getVoices();
+  const norwegianVoice =
+    voices.find((voice) => voice.lang.toLowerCase().startsWith("nb")) ??
+    voices.find((voice) => voice.lang.toLowerCase().startsWith("no"));
+  const excerpt = article.extract.replace(/\s+/g, " ").trim();
+  const utterance = new SpeechSynthesisUtterance(
+    `${article.title}. ${excerpt}`,
+  );
+  utterance.lang = "nb-NO";
+  if (norwegianVoice) utterance.voice = norwegianVoice;
+  utterance.onstart = () => {
+    if (currentRun === runId && sequence === speechSequence) {
+      setStatus(
+        `Leser ${article.title} (${index + 1} av ${items.length}) …`,
+        "speaking",
+      );
+    }
+  };
+  utterance.onend = () => {
+    if (currentRun === runId && sequence === speechSequence) {
+      speakStoryAt(items, currentRun, index + 1);
+    }
+  };
+  utterance.onerror = (event) => {
+    if (
+      currentRun === runId &&
+      sequence === speechSequence &&
+      event.error !== "canceled" &&
+      event.error !== "interrupted"
+    ) {
+      currentStoryIndex = -1;
+      nextButton.disabled = true;
+      stopButton.disabled = true;
+      setStatus("Opplesingen ble avbrutt av nettleseren.", "error");
+    }
+  };
+  window.speechSynthesis.speak(utterance);
+}
+
 function speakStories(items, currentRun) {
   const voices = window.speechSynthesis.getVoices();
   const norwegianVoice =
     voices.find((voice) => voice.lang.toLowerCase().startsWith("nb")) ??
     voices.find((voice) => voice.lang.toLowerCase().startsWith("no"));
+  const sequence = ++speechSequence;
   const introduction = new SpeechSynthesisUtterance(
     `Her er noen historier fra området rundt deg. ${items.length} steder er funnet.`,
   );
   introduction.lang = "nb-NO";
   if (norwegianVoice) introduction.voice = norwegianVoice;
   introduction.onstart = () => {
-    if (currentRun === runId) setStatus("Leser opp historiene …", "speaking");
+    if (currentRun === runId && sequence === speechSequence) {
+      setStatus("Leser introduksjonen …", "speaking");
+    }
+  };
+  introduction.onend = () => {
+    if (currentRun === runId && sequence === speechSequence) {
+      speakStoryAt(items, currentRun, 0);
+    }
   };
   introduction.onerror = (event) => {
     if (
       currentRun === runId &&
+      sequence === speechSequence &&
       event.error !== "canceled" &&
       event.error !== "interrupted"
     ) {
       setStatus("Opplesing er ikke tilgjengelig i denne nettleseren.", "error");
+      nextButton.disabled = true;
       stopButton.disabled = true;
     }
   };
   window.speechSynthesis.speak(introduction);
+}
 
-  items.forEach((article, index) => {
-    const excerpt = article.extract.replace(/\s+/g, " ").trim();
-    const utterance = new SpeechSynthesisUtterance(
-      `${article.title}. ${excerpt}`,
-    );
-    utterance.lang = "nb-NO";
-    if (norwegianVoice) utterance.voice = norwegianVoice;
-    utterance.onend = () => {
-      if (currentRun === runId && index === items.length - 1) {
-        setStatus("Ferdig. Trykk Fortell for å høre historiene igjen.", "done");
-        stopButton.disabled = true;
-      }
-    };
-    utterance.onerror = (event) => {
-      if (
-        currentRun === runId &&
-        event.error !== "canceled" &&
-        event.error !== "interrupted"
-      ) {
-        setStatus("Opplesingen ble avbrutt av nettleseren.", "error");
-        stopButton.disabled = true;
-      }
-    };
-    window.speechSynthesis.speak(utterance);
-  });
+function skipCurrentStory() {
+  if (currentStoryIndex < 0 || currentStoryIndex >= articles.length - 1) return;
+  const nextIndex = currentStoryIndex + 1;
+  speechSequence += 1;
+  window.speechSynthesis.cancel();
+  speakStoryAt(articles, runId, nextIndex);
 }
 
 async function tellHistory() {
   const currentRun = ++runId;
+  speechSequence += 1;
+  currentStoryIndex = -1;
+  nextButton.disabled = true;
   activeRequest?.abort();
   window.speechSynthesis.cancel();
   activeRequest = new AbortController();
@@ -249,6 +302,7 @@ async function tellHistory() {
     if (currentRun !== runId || error.name === "AbortError") return;
     setStatus(error.message || "Noe gikk galt. Prøv igjen.", "error");
     stopButton.disabled = true;
+    nextButton.disabled = true;
     resultCount.textContent = "INGEN TREFF";
   } finally {
     if (currentRun === runId) tellButton.disabled = false;
@@ -257,10 +311,13 @@ async function tellHistory() {
 
 function stopHistory() {
   runId += 1;
+  speechSequence += 1;
   activeRequest?.abort();
   window.speechSynthesis.cancel();
+  currentStoryIndex = -1;
   tellButton.disabled = false;
   stopButton.disabled = true;
+  nextButton.disabled = true;
   setStatus(
     articles.length ? "Opplesingen er stoppet." : "Søket er stoppet.",
     "idle",
@@ -269,3 +326,4 @@ function stopHistory() {
 
 tellButton.addEventListener("click", tellHistory);
 stopButton.addEventListener("click", stopHistory);
+nextButton.addEventListener("click", skipCurrentStory);

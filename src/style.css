@@ -140,12 +140,14 @@ h1 em {
 }
 
 .controls {
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: 1.25fr 1fr 1fr;
+  gap: 8px;
 }
 .action {
   min-height: 50px;
-  padding: 0 19px;
+  min-width: 0;
+  padding: 0 10px;
   border: 1px solid var(--ink);
   border-radius: 3px;
   display: inline-flex;
@@ -167,7 +169,6 @@ h1 em {
   fill: currentColor;
 }
 .action-primary {
-  min-width: 145px;
   background: var(--ink);
   color: var(--paper);
 }
@@ -176,11 +177,17 @@ h1 em {
   border-color: var(--accent);
 }
 .action-stop {
-  min-width: 112px;
   background: transparent;
   color: var(--ink);
 }
 .action-stop:hover:not(:disabled) {
+  background: #e7e3d8;
+}
+.action-next {
+  background: transparent;
+  color: var(--ink);
+}
+.action-next:hover:not(:disabled) {
   background: #e7e3d8;
 }
 .action:disabled {
