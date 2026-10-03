@@ -266,6 +266,11 @@ a:focus-visible {
   padding: 17px 0 16px;
   border-bottom: 1px solid var(--line);
   animation: settle-in 350ms ease-out both;
+  transition: background-color 180ms ease;
+}
+.story-item.is-speaking {
+  background-color: rgba(211, 86, 59, 0.08);
+  box-shadow: inset 3px 0 var(--accent);
 }
 .story-number,
 .empty-number {
@@ -292,6 +297,17 @@ a:focus-visible {
 }
 .story-details a:hover {
   text-decoration-color: var(--accent);
+}
+.story-item.is-speaking .story-details a {
+  color: var(--accent);
+  font-weight: 600;
+}
+.story-now {
+  color: var(--accent);
+  font: 9px var(--mono);
+}
+.story-now[hidden] {
+  display: none;
 }
 .story-distance {
   color: var(--muted);

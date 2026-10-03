@@ -33,6 +33,16 @@ function setStatus(message, state = "idle") {
   statusIndicator.dataset.state = state;
 }
 
+function highlightStory(index) {
+  storyList.querySelectorAll(".story-item").forEach((item, itemIndex) => {
+    const isCurrent = itemIndex === index;
+    item.classList.toggle("is-speaking", isCurrent);
+    item.querySelector(".story-now").hidden = !isCurrent;
+    if (isCurrent) item.setAttribute("aria-current", "true");
+    else item.removeAttribute("aria-current");
+  });
+}
+
 function renderArticles(items) {
   articles = items;
   currentStoryIndex = -1;
@@ -64,13 +74,17 @@ function renderArticles(items) {
     title.target = "_blank";
     title.rel = "noreferrer";
     title.textContent = article.title;
+    const now = document.createElement("span");
+    now.className = "story-now";
+    now.textContent = "LESER NÅ";
+    now.hidden = true;
     const distance = document.createElement("span");
     distance.className = "story-distance";
     distance.textContent =
       article.dist < 1000
         ? `${Math.round(article.dist)} M UNNA`
         : `${(article.dist / 1000).toFixed(1).replace(".", ",")} KM UNNA`;
-    details.append(title, distance);
+    details.append(title, now, distance);
     item.append(number, details);
     storyList.append(item);
   });
@@ -154,6 +168,7 @@ function speakStoryAt(items, currentRun, index) {
   if (currentRun !== runId) return;
   if (index >= items.length) {
     currentStoryIndex = -1;
+    highlightStory(-1);
     nextButton.disabled = true;
     stopButton.disabled = true;
     setStatus("Ferdig. Trykk Fortell for å høre historiene igjen.", "done");
@@ -176,6 +191,7 @@ function speakStoryAt(items, currentRun, index) {
   if (norwegianVoice) utterance.voice = norwegianVoice;
   utterance.onstart = () => {
     if (currentRun === runId && sequence === speechSequence) {
+      highlightStory(index);
       setStatus(
         `Leser ${article.title} (${index + 1} av ${items.length}) …`,
         "speaking",
@@ -184,6 +200,7 @@ function speakStoryAt(items, currentRun, index) {
   };
   utterance.onend = () => {
     if (currentRun === runId && sequence === speechSequence) {
+      highlightStory(-1);
       speakStoryAt(items, currentRun, index + 1);
     }
   };
@@ -195,6 +212,7 @@ function speakStoryAt(items, currentRun, index) {
       event.error !== "interrupted"
     ) {
       currentStoryIndex = -1;
+      highlightStory(-1);
       nextButton.disabled = true;
       stopButton.disabled = true;
       setStatus("Opplesingen ble avbrutt av nettleseren.", "error");
@@ -243,6 +261,7 @@ function skipCurrentStory() {
   if (currentStoryIndex < 0 || currentStoryIndex >= articles.length - 1) return;
   const nextIndex = currentStoryIndex + 1;
   speechSequence += 1;
+  highlightStory(-1);
   window.speechSynthesis.cancel();
   speakStoryAt(articles, runId, nextIndex);
 }
@@ -315,6 +334,7 @@ function stopHistory() {
   activeRequest?.abort();
   window.speechSynthesis.cancel();
   currentStoryIndex = -1;
+  highlightStory(-1);
   tellButton.disabled = false;
   stopButton.disabled = true;
   nextButton.disabled = true;
